@@ -1,3 +1,4 @@
+#include "alarm.h"
 #include "lcd_4bit.h"
 #include "mbed.h"
 
@@ -10,6 +11,10 @@ char read_temp[2];
 float c_temp;
 float max_temp;
 float min_temp;
+bool upper_limit_set;
+bool lower_limit_set;
+float upper_limit;
+float lower_limit;
 char LCD_result[9];
 
 Thread thread1; // Read temp and display on LCD
@@ -41,6 +46,18 @@ void temp_thread(void const *args) {
 Thread thread2;
 void ui_thread (void const *args) {
 
+}
+
+Thread thread3;
+void alarm_thread (void const *args) {
+    while (1) {
+        if (upper_limit_set && c_temp > upper_limit) {
+            play_alarm(200.0, 500, 500);
+        } else if (lower_limit_set && c_temp < lower_limit) {
+            play_alarm(125.0, 250, 250);
+        }
+    }
+    thread_sleep_for(1000);
 }
 
 #if !MBED_TEST_MODE

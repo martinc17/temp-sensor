@@ -5,4 +5,5 @@
 #include "mbed.h"
 
 //Function prototype
+void play_alarm(float frequency, int duration, int rest);
 #endif
