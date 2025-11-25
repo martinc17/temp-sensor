@@ -8,6 +8,8 @@ const int temp_addr = 0x90; // I2C address of temperature sensor DS1631
 char commands[] = {0x51, 0xAA};
 char read_temp[2];
 float c_temp;
+float max_temp;
+float min_temp;
 char LCD_result[9];
 
 Thread thread1; // Read temp and display on LCD
