@@ -3,10 +3,7 @@ AnalogIn volume(A0);
 PwmOut buzzer(D9);
 
 /*
-Function for sounding the buzzer
-`frequency` the pitch
-`duration` the length (ms) of the beep
-`rest` the length (ms) of the break between beeps
+Function for sounding the buzzer at the specified frequency
 */
 void play_alarm(float frequency, int duration, int rest) {
     buzzer.period(1.0 / frequency);
