@@ -1,5 +1,7 @@
-/*Header file of functions to write to 2x16 LCD,
-operating in 4-bit mode.                           */
+/*
+Header file of functions to write to 2x16 LCD,
+operating in 4-bit mode.
+*/
 
 #ifndef FOUR_BIT_LCD_H
 #define FOUR_BIT_LCD_H
@@ -11,7 +13,6 @@ operating in 4-bit mode.                           */
 // Function Prototypes
 void clr_lcd(void);
 void init_lcd(void);
-void print_lcd(const char *string);
 void shift_out(int data);
 void write_cmd(int cmd);
 void write_data(char c);

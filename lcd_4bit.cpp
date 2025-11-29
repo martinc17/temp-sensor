@@ -5,7 +5,8 @@ operating in 4-bit mode.                                        */
 DigitalOut CS(D10);
 SPI ser_port(D11, D12, D13); // Initialise SPI, using default settings
 
-void init_lcd(void) { // follow designated procedure in data sheet
+// Manufacturer specified initialisation process
+void init_lcd(void) { 
   thread_sleep_for(40);
   shift_out(0x30); // function set 8-bit
   wait_us(37);
@@ -22,6 +23,8 @@ void init_lcd(void) { // follow designated procedure in data sheet
   write_cmd(0x28); // function set
   wait_us(37);
 }
+
+// Writes 4 bit data and mode to the LCD
 void write_4bit(int data, int mode) { // mode is RS line, cmd=0, data=1
   int hi_n;
   int lo_n;
@@ -35,31 +38,32 @@ void write_4bit(int data, int mode) { // mode is RS line, cmd=0, data=1
   wait_us(1);
   shift_out(lo_n & ~ENABLE);
 }
-void shift_out(int data) { // Sends word to SPI port
+
+// Sends word to SPI port
+void shift_out(int data) { 
   CS = 0;
   ser_port.write(data);
   CS = 1;
 }
-void write_cmd(int cmd) { // Configures LCD command word
+
+// Configures LCD command word
+void write_cmd(int cmd) { 
   write_4bit(cmd, COMMAND_MODE);
 }
-void write_data(char c) {   // Configures LCD data word
-  write_4bit(c, DATA_MODE); // 1 for data mode
+// Configures LCD data word
+void write_data(char c) {   
+  write_4bit(c, DATA_MODE);
 }
-void clr_lcd(void) { // Clears display and waits required time
-  write_cmd(0x01);   // display clear
+
+// Clears the display and waits the required time
+void clr_lcd(void) {
+  write_cmd(0x01);
   wait_us(1520);
 }
-// Sends character string to LCD
-void write_single_line(const char *string) { 
-  while (*string) {
-    write_data(*string++);
-    wait_us(40);
-  }
-}
+
 // Sets the cursor to the position indicated by `line` and `pos`
 void set_cursor(int line, int pos) {
-    int addr = (line == 0 ? 0x00 : 0x40) + pos;
-    write_cmd(0x80 | addr);
-    wait_us(40);
+  int addr = (line == 0 ? 0x00 : 0x40) + pos;
+  write_cmd(0x80 | addr);
+  wait_us(40);
 }
