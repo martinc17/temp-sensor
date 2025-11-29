@@ -52,6 +52,7 @@ void ui_thread(void const *args) {
     format_temp_with_unit(tc_copy, buff, sizeof(buff));
     lines[0] = buff;
     dispay_lines(lines, 1);
+    thread_sleep_for(500);
   }
 }
 
