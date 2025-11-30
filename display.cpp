@@ -21,11 +21,13 @@ void dispay_lines(const char *lines[], int n_lines) {
   }
 }
 /*
-  Formats a temperature value with degrees C indicator, ready for display
+  Formats a temperature value with degrees C indicator and a specified label
 */
-void format_temp_with_unit(float temp, char *buf, size_t buf_size) {
-    int integer_part = int(temp);
-    int decimal_part = int((temp - integer_part) * 10 + 0.5f);
-    if (decimal_part < 0) decimal_part = -decimal_part;
-    snprintf(buf, buf_size, "%d.%d C", integer_part, decimal_part);
+void format_labelled_temp(const char *label, float temp, char *buf,
+                           size_t buf_size) {
+  int integer_part = int(temp);
+  int decimal_part = int((temp - integer_part) * 10 + 0.5f);
+  if (decimal_part < 0)
+    decimal_part = -decimal_part;
+  snprintf(buf, buf_size, "%s: %d.%d C", label, integer_part, decimal_part);
 }

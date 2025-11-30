@@ -1,22 +1,21 @@
 #include "alarm.h"
 #include "display.h"
+#include "globals.h"
 #include "mbed.h"
+#include "menu.h"
 
 I2C temp_sensor(I2C_SDA, I2C_SCL); // Configure I2C interface
 
 Mutex temp_mutex;
+Ticker reset_max_min;
 
 const int temp_addr = 0x90; // I2C address of temperature sensor DS1631
 char commands[] = {0x51, 0xAA};
+bool initialised = false;
 char read_temp[2];
 float c_temp;
 float max_temp;
 float min_temp;
-bool upper_limit_set;
-bool lower_limit_set;
-float upper_limit;
-float lower_limit;
-char buff[10];
 
 Thread thread1;
 // Read and store the temp
@@ -31,6 +30,18 @@ void temp_thread(void const *args) {
     {
       ScopedLock<Mutex> lock(temp_mutex);
       c_temp = (float((read_temp[0] << 8) | read_temp[1]) / 256);
+
+      if (!initialised) {
+        max_temp = min_temp = c_temp;
+        initialised = true;
+      } else {
+        if (c_temp > max_temp) {
+          max_temp = c_temp;
+        }
+        if (c_temp < min_temp) {
+          min_temp = c_temp;
+        }
+      }
     }
     // convert float to character string
     // Write 0x51 to the DS1631 (address 0x90) to start next temp conversion
@@ -41,17 +52,31 @@ void temp_thread(void const *args) {
 
 Thread thread2;
 // Handle the menu, display of temp and user interaction
+void show_temps() {
+  float tc_copy, tmx_copy, tmn_copy;
+  char line[20];
+  {
+    ScopedLock<Mutex> lock(temp_mutex);
+    tc_copy = c_temp;
+    tmx_copy = max_temp;
+    tmn_copy = min_temp;
+  }
+  const char *lines[LCD_ROWS];
+  format_labelled_temp("Cur", tc_copy, line, sizeof(line));
+  lines[0] = line;
+  format_labelled_temp("Max", tmx_copy, line, sizeof(line));
+  lines[1] = line;
+  format_labelled_temp("Min", tmn_copy, line, sizeof(line));
+  lines[2] = line;
+  dispay_lines(lines, 3);
+}
 void ui_thread(void const *args) {
   while (1) {
-    float tc_copy;
-    {
-      ScopedLock<Mutex> lock(temp_mutex);
-      tc_copy = c_temp;
+    if (ui_mode == 0) {
+      show_temps();
+    } else {
+      display_menu();
     }
-    const char *lines[LCD_ROWS];
-    format_temp_with_unit(tc_copy, buff, sizeof(buff));
-    lines[0] = buff;
-    dispay_lines(lines, 1);
     thread_sleep_for(500);
   }
 }
@@ -65,13 +90,22 @@ void alarm_thread(void const *args) {
       ScopedLock<Mutex> lock(temp_mutex);
       t_copy = c_temp;
     }
-    if (upper_limit_set && t_copy > upper_limit) {
-      play_alarm(200.0, 500, 500);
-    } else if (lower_limit_set && t_copy < lower_limit) {
-      play_alarm(125.0, 250, 250);
+    {
+      ScopedLock<Mutex> lock(limit_mutex);
+      if (upper_limit_set && t_copy > upper_limit) {
+        play_alarm(200.0, 500, 500);
+      } else if (lower_limit_set && t_copy < lower_limit) {
+        play_alarm(125.0, 250, 250);
+      }
     }
     thread_sleep_for(1000);
   }
+}
+
+// Resets the min and max temps every hour
+void reset_max_min_hourly() {
+  ScopedLock<Mutex> lock(temp_mutex);
+  max_temp = min_temp = c_temp;
 }
 
 #if !MBED_TEST_MODE
@@ -79,6 +113,8 @@ void alarm_thread(void const *args) {
 int main() {
   init_lcd();
   clr_lcd();
+
+  reset_max_min.attach(&reset_max_min_hourly, 1h);
 
   thread1.start(callback(temp_thread, &temp_sensor));
   thread2.start(callback(ui_thread, (void const *)nullptr));

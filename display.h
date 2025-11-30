@@ -9,5 +9,5 @@ Header file of functions to display data on LCD
 
 //Function Prototypes
 void dispay_lines(const char *lines[], int n_lines);
-void format_temp_with_unit(float temp, char *buf, size_t buf_size);
+void format_labelled_temp(const char *label, float temp, char *buf, size_t buf_size);
 #endif
