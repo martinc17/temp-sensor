@@ -54,7 +54,7 @@ Thread thread2;
 // Handle the menu, display of temp and user interaction
 void show_temps() {
   float tc_copy, tmx_copy, tmn_copy;
-  char line[20];
+  char line0[20], line1[20], line2[20];
   {
     ScopedLock<Mutex> lock(temp_mutex);
     tc_copy = c_temp;
@@ -62,12 +62,12 @@ void show_temps() {
     tmn_copy = min_temp;
   }
   const char *lines[LCD_ROWS];
-  format_labelled_temp("Cur", tc_copy, line, sizeof(line));
-  lines[0] = line;
-  format_labelled_temp("Max", tmx_copy, line, sizeof(line));
-  lines[1] = line;
-  format_labelled_temp("Min", tmn_copy, line, sizeof(line));
-  lines[2] = line;
+  format_labelled_temp("Cur", tc_copy, line0, sizeof(line0));
+  lines[0] = line0;
+  format_labelled_temp("Max", tmx_copy, line1, sizeof(line1));
+  lines[1] = line1;
+  format_labelled_temp("Min", tmn_copy, line2, sizeof(line2));
+  lines[2] = line2;
   dispay_lines(lines, 3);
 }
 void ui_thread(void const *args) {
