@@ -5,6 +5,10 @@
 #include "menu.h"
 
 I2C temp_sensor(I2C_SDA, I2C_SCL); // Configure I2C interface
+InterruptIn btn_menu(D2);
+InterruptIn btn_up(D3);
+InterruptIn btn_dwn(D4);
+InterruptIn btn_slct(D5);
 
 Mutex temp_mutex;
 Ticker reset_max_min;
@@ -72,6 +76,7 @@ void show_temps() {
 }
 void ui_thread(void const *args) {
   while (1) {
+    handle_menu_input();
     if (ui_mode == 0) {
       show_temps();
     } else {
@@ -113,7 +118,10 @@ void reset_max_min_hourly() {
 int main() {
   init_lcd();
   clr_lcd();
-
+  btn_menu.fall(&menu_button_isr);
+  btn_up.fall(&up_isr);
+  btn_dwn.fall(&down_isr);
+  btn_slct.fall(&select_isr);
   reset_max_min.attach(&reset_max_min_hourly, 1h);
 
   thread1.start(callback(temp_thread, &temp_sensor));

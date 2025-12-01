@@ -10,6 +10,7 @@ void menu_button_isr();
 void up_isr();
 void down_isr();
 void select_isr();
+void handle_menu_input();
 void handle_menu_choice(int select);
 void display_menu();
 

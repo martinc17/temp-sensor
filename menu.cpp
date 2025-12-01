@@ -9,78 +9,17 @@ int set_temp = 0;
 float temp_lower;
 float temp_upper;
 
-/*
-ISR for responding to menu button.
-Will enter or exit menu state.
-*/
-void menu_button_isr() {
-  if (ui_mode == 0) {
-    ui_mode = 1;
-    menu_select = 0;
-  } else {
-    ui_mode = 0;
-  }
-}
+volatile bool btn_menu_flag = false;
+volatile bool btn_up_flag = false;
+volatile bool btn_down_flag = false;
+volatile bool btn_select_flag = false;
 
-/*
-  ISR for responding to up button.
-  Will decrement menu select in menu state.
-  Will increment temp limit in set temp state.
-*/
-void up_isr() {
-  if (ui_mode == 1 && set_temp == 0) {
-    menu_select--;
-    if (menu_select < 0) {
-      menu_select = 0;
-    }
-  }
-  if (set_temp == 1) {
-    temp_upper += 0.5f;
-  }
-  if (set_temp == 2) {
-    temp_lower += 0.5f;
-  }
-}
+void menu_button_isr() { btn_menu_flag = true; }
+void up_isr() { btn_up_flag = true; }
+void down_isr() { btn_down_flag = true; }
+void select_isr() { btn_select_flag = true; }
 
-/*
-  ISR for responding to down button.
-  Will increment menu select in menu state.
-  Will decrement temp limit in set temp state.
-*/
-void down_isr() {
-  if (ui_mode == 1 && set_temp == 0) {
-    menu_select++;
-    if (menu_select > 2) {
-      menu_select = 0;
-    }
-  }
-  if (set_temp == 1) {
-    upper_limit -= 0.5f;
-  }
-  if (set_temp == 2) {
-    lower_limit -= 0.5f;
-  }
-}
-/*
-  ISR for responding to the select button.
-  Will confirm menu selection in menu state.
-  Will save temp limit in set temp state.
-*/
-void select_isr() {
-  if (ui_mode == 1 && set_temp == 0) {
-    handle_menu_choice(menu_select);
-  } else if (set_temp == 1) {
-      ScopedLock<Mutex> lock(limit_mutex);
-      upper_limit = temp_upper;
-  } else if (set_temp == 2) {
-      ScopedLock<Mutex> lock(limit_mutex);
-      lower_limit = temp_lower;
-  }
-}
 
-/*
-Handles the menu choice of the user
-*/
 void handle_menu_choice(int select) {
 
   if (select == 0) {
@@ -98,6 +37,36 @@ void handle_menu_choice(int select) {
   }
 }
 
+void handle_menu_input() {
+    if (btn_menu_flag) {
+        btn_menu_flag = false;
+        if (ui_mode == 0) { ui_mode = 1; menu_select = 0; }
+        else { ui_mode = 0; set_temp = 0; }
+    }
+
+    if (btn_up_flag) {
+        btn_up_flag = false;
+        if (ui_mode == 1 && set_temp == 0) menu_select = (menu_select > 0) ? menu_select-1 : 2;
+        else if (set_temp == 1) temp_upper += 0.5f;
+        else if (set_temp == 2) temp_lower += 0.5f;
+    }
+
+    if (btn_down_flag) {
+        btn_down_flag = false;
+        if (ui_mode == 1 && set_temp == 0) menu_select = (menu_select < 2) ? menu_select+1 : 0;
+        else if (set_temp == 1) temp_upper -= 0.5f;
+        else if (set_temp == 2) temp_lower -= 0.5f;
+    }
+
+    if (btn_select_flag) {
+        btn_select_flag = false;
+        ScopedLock<Mutex> lock(limit_mutex);
+        if (ui_mode == 1 && set_temp == 0) handle_menu_choice(menu_select);
+        else if (set_temp == 1) { upper_limit = temp_upper; upper_limit_set = true; set_temp = 0; }
+        else if (set_temp == 2) { lower_limit = temp_lower; lower_limit_set = true; set_temp = 0; }
+    }
+}
+
 void display_menu() {
   const char *lines[LCD_ROWS];
   char buff[20];
@@ -107,16 +76,18 @@ void display_menu() {
     lines[2] = (menu_select == 2) ? "> Disable limits" : "  Disable limits";
     dispay_lines(lines, 3);
   } else if (set_temp == 1) {
-    sprintf(buff, " %.1f C", temp_upper);
+    format_labelled_temp(" ", temp_upper, buff, sizeof(buff));
     lines[0] = "Upper limit:";
     lines[1] = buff;
     lines[2] = "Adjust using up/down";
     lines[3] = "Press select to save";
+    dispay_lines(lines, 4);
   } else if (set_temp == 2) {
-    sprintf(buff, " %.1f C", temp_lower);
+    format_labelled_temp(" ", temp_lower, buff, sizeof(buff));
     lines[0] = "Lower limit:";
     lines[1] = buff;
     lines[2] = "Adjust using up/down";
     lines[3] = "Press select to save";
+    dispay_lines(lines, 4);
   }
 }
